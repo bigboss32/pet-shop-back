@@ -30,7 +30,6 @@ def create_sale(
         subtotal += item.price * item.quantity
     
     # Calcular totales
-
     total = subtotal - sale.discount
     
     # Crear venta
@@ -179,3 +178,47 @@ def get_sale(
     }
     
     return sale_response
+
+@router.delete("/{sale_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_sale(
+    sale_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Elimina una venta y restaura el stock de los productos.
+    Solo disponible para usuarios con rol 'admin'.
+    """
+    # Verificar que el usuario sea administrador
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para eliminar ventas"
+        )
+    
+    # Buscar la venta con sus items
+    sale = db.query(Sale).options(
+        joinedload(Sale.items)
+    ).filter(Sale.id == sale_id).first()
+    
+    if not sale:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Venta no encontrada"
+        )
+    
+    # Restaurar el stock de los productos
+    for item in sale.items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if product:
+            product.stock += item.quantity
+    
+    # Eliminar los items de la venta
+    for item in sale.items:
+        db.delete(item)
+    
+    # Eliminar la venta
+    db.delete(sale)
+    db.commit()
+    
+    return None
