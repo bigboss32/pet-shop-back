@@ -1,3 +1,4 @@
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
@@ -20,14 +21,19 @@ def create_sale(
     current_user: User = Depends(get_current_user)
 ):
     # Validar productos y stock
-    subtotal = 0
+    subtotal = Decimal('0')
+    
     for item in sale.items:
         product = db.query(Product).filter(Product.id == item.product_id).first()
         if not product:
             raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
+        
+        # Validar stock (ahora con decimales)
         if product.stock < item.quantity:
-            raise HTTPException(status_code=400, detail=f"Insufficient stock for {product.name}")
-        subtotal += item.price * item.quantity
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Insufficient stock for {product.name}. Available: {product.stock} {product.unidad_medida or 'units'}"
+            )
     
     # Calcular totales
     total = subtotal - sale.discount
@@ -35,10 +41,10 @@ def create_sale(
     # Crear venta
     new_sale = Sale(
         user_id=current_user.id,
-        subtotal=subtotal,
+        subtotal=float(subtotal),  # Convertir a float para la BD
         tax=0,
-        discount=sale.discount,
-        total=total,
+        discount=float(sale.discount),
+        total=float(total),
         payment_method=sale.payment_method,
         customer_name=sale.customer_name,
         customer_email=sale.customer_email,
@@ -52,9 +58,9 @@ def create_sale(
         sale_item = SaleItem(
             sale_id=new_sale.id,
             product_id=item.product_id,
-            quantity=item.quantity,
-            price=item.price,
-            subtotal=item.price * item.quantity
+            quantity=float(item.quantity),  # Convertir a float
+            price=float(item.price),
+            subtotal=float(item.price * item.quantity)
         )
         db.add(sale_item)
         
@@ -65,7 +71,6 @@ def create_sale(
     db.commit()
     db.refresh(new_sale)
     return new_sale
-
 @router.get("/", response_model=List[SaleWithUserResponse])
 def get_sales(
     skip: int = 0,
@@ -176,7 +181,7 @@ def get_sale(
             for item in sale.items
         ]
     }
-    
+    print(sale_response)
     return sale_response
 
 @router.delete("/{sale_id}", status_code=status.HTTP_204_NO_CONTENT)

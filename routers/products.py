@@ -87,7 +87,7 @@ def get_products(
     for p in products:
         if isinstance(p.image_base64, bytes):
             p.image_base64 = base64.b64encode(p.image_base64).decode("utf-8")
-
+    print(products)
     return products
 
 

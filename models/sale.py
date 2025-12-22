@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from database import Base
 from utils import get_local_now
@@ -8,11 +8,11 @@ class Sale(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    total = Column(Float, nullable=False)
-    subtotal = Column(Float, nullable=False)
-    tax = Column(Float, default=0.0)
-    discount = Column(Float, default=0.0)
-    payment_method = Column(String, nullable=False)  # cash, card, nequi, etc.
+    total = Column(Numeric(10, 2), nullable=False)      # Cambiado a Numeric
+    subtotal = Column(Numeric(10, 2), nullable=False)   # Cambiado a Numeric
+    tax = Column(Numeric(10, 2), default=0.0)           # Cambiado a Numeric
+    discount = Column(Numeric(10, 2), default=0.0)      # Cambiado a Numeric
+    payment_method = Column(String, nullable=False)     # cash, card, nequi, etc.
     customer_name = Column(String)
     customer_email = Column(String)
     notes = Column(String)
@@ -27,9 +27,9 @@ class SaleItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     sale_id = Column(Integer, ForeignKey("sales.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
-    quantity = Column(Integer, nullable=False)
-    price = Column(Float, nullable=False)
-    subtotal = Column(Float, nullable=False)
+    quantity = Column(Numeric(10, 3), nullable=False)   # Cambiado a Numeric (3 decimales)
+    price = Column(Numeric(10, 2), nullable=False)      # Cambiado a Numeric
+    subtotal = Column(Numeric(10, 2), nullable=False)   # Cambiado a Numeric
     
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product")

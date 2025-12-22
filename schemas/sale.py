@@ -1,46 +1,59 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, condecimal
 from typing import List, Optional
 from datetime import datetime
+from decimal import Decimal
 from .user import UserSimple
+
+# =========================
+# ITEMS
+# =========================
 
 class SaleItemBase(BaseModel):
     product_id: int
-    quantity: int = Field(gt=0)
-    price: float = Field(gt=0)
+    quantity: condecimal(gt=0, max_digits=10, decimal_places=3)
+    price: condecimal(gt=0, max_digits=10, decimal_places=2)
+
+
+class SaleItemResponse(SaleItemBase):
+    id: int
+    subtotal: condecimal(max_digits=10, decimal_places=2)
+    product_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# =========================
+# SALE
+# =========================
 
 class SaleBase(BaseModel):
     payment_method: str
     customer_name: Optional[str] = None
     customer_email: Optional[EmailStr] = None
-    discount: float = Field(ge=0, default=0)
+    discount: condecimal(ge=0, max_digits=10, decimal_places=2) = Decimal("0")
     notes: Optional[str] = None
+
 
 class SaleCreate(SaleBase):
     items: List[SaleItemBase]
 
-class SaleItemResponse(SaleItemBase):
-    id: int
-    subtotal: float
-    product_name: Optional[str] = None  # Para mostrar el nombre del producto
-    
-    class Config:
-        from_attributes = True
 
 class SaleResponse(SaleBase):
     id: int
-    total: float
-    subtotal: float
-    tax: float
+    total: condecimal(max_digits=10, decimal_places=2)
+    subtotal: condecimal(max_digits=10, decimal_places=2)
+    tax: condecimal(max_digits=10, decimal_places=2)
     created_at: datetime
-    user: Optional[UserSimple] = None  # ✅ Ahora usa UserSimple
+    user: Optional[UserSimple] = None
     items: List[SaleItemResponse]
-    
+
     class Config:
         from_attributes = True
 
-# Esquema para respuestas con joins
+
 class SaleWithUserResponse(SaleResponse):
     user: Optional[UserSimple] = None
-    
+
     class Config:
         from_attributes = True
