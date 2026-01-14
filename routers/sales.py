@@ -34,9 +34,13 @@ def create_sale(
                 status_code=400, 
                 detail=f"Insufficient stock for {product.name}. Available: {product.stock} {product.unidad_medida or 'units'}"
             )
+        
+        # ✅ SUMAR AL SUBTOTAL
+        item_subtotal = Decimal(str(item.quantity)) * Decimal(str(item.price))
+        subtotal += item_subtotal
     
     # Calcular totales
-    total = subtotal - sale.discount
+    total = subtotal - Decimal(str(sale.discount))
     
     # Crear venta
     new_sale = Sale(
@@ -71,6 +75,7 @@ def create_sale(
     db.commit()
     db.refresh(new_sale)
     return new_sale
+
 @router.get("/", response_model=List[SaleWithUserResponse])
 def get_sales(
     skip: int = 0,
